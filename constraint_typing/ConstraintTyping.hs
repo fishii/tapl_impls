@@ -136,15 +136,17 @@ unify _ = Nothing
 -- 無限列にしたいところだが、そうすると列が等しいか否かの比較(テストで必要になる)が停止しないので、有限列にする。
 f = map (\i -> Tv ("?X" ++ (show i))) [0..9]
 
--- | 空の型付け文脈における項の主要型を返す。
--- 演習22.5.5の解答。
-principalTypeof :: Term -> Maybe Type
-principalTypeof t = do (ty, f', c) <- recon [] f t
-                       principalUnifiers <- unify c
-                       Just (applySubst principalUnifiers ty)
-
 -- | 空の型付け文脈Γと項tとの組(Γ,t)の主要解を返す。
 principalSolution :: Term -> Maybe (TypeSubstitution, Type)
 principalSolution t = do (ty, f', c) <- recon [] f t
-                         principalUnifiers <- unify c
-                         Just (principalUnifiers, ty)
+                         principalUnifier <- unify c
+                         Just (principalUnifier, ty)
+
+-- | 空の型付け文脈における項の主要型を返す。
+-- 演習22.5.5の解答。
+principalTypeof :: Term -> Maybe Type
+-- principalTypeof t = do (ty, f', c) <- recon [] f t
+--                        principalUnifiers <- unify c
+--                        Just (applySubst principalUnifiers ty)
+principalTypeof t = do (principalUnifier, ty) <- principalSolution t
+                       Just (applySubst principalUnifier ty)

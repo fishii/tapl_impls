@@ -168,6 +168,18 @@ applySubstTests = TestList
       applySubst [(tv_X0, TyBool)] ty_X0 ~?= TyBool
     ]
 
+principalSolutionTests = TestList
+    [
+      "(lambda x:X. x) true => [X mapsto Bool, ?X0 mapsto Bool], ?X0" ~:
+      principalSolution (TmApp (TmAbs v_x ty_X t_x) TmTrue)
+      ~?= Just ([(tv_X, TyBool), (tv_X0, TyBool)], ty_X0)
+
+    , "lambda x:X. if true then false else (x false)" ++
+      "=> [X mapsto Bool -> Bool], X -> Bool" ~:
+      principalSolution (TmAbs v_x ty_X (TmIf TmTrue TmFalse (TmApp t_x TmFalse)))
+      ~?= Just ([(tv_X, TyArr TyBool TyBool), (tv_X0, TyBool)], TyArr ty_X TyBool)
+    ]
+
 principalTypeofTests = TestList
     [
       "lambda x:X. x => X -> X" ~:
@@ -200,22 +212,10 @@ principalTypeofTests = TestList
                       TyBool)
     ]
 
-principalSolutionTests = TestList
-    [
-      "(lambda x:X. x) true => [X mapsto Bool, ?X0 mapsto Bool], ?X0" ~:
-      principalSolution (TmApp (TmAbs v_x ty_X t_x) TmTrue)
-      ~?= Just ([(tv_X, TyBool), (tv_X0, TyBool)], ty_X0)
-
-    , "lambda x:X. if true then false else (x false)" ++
-      "=> [X mapsto Bool -> Bool], X -> Bool" ~:
-      principalSolution (TmAbs v_x ty_X (TmIf TmTrue TmFalse (TmApp t_x TmFalse)))
-      ~?= Just ([(tv_X, TyArr TyBool TyBool), (tv_X0, TyBool)], TyArr ty_X TyBool)
-    ]
-
 main = do
     runTestText (putTextToHandle stderr False) reconTests
     runTestText (putTextToHandle stderr False) compTests
     runTestText (putTextToHandle stderr False) unifyTests
     runTestText (putTextToHandle stderr False) applySubstTests
-    runTestText (putTextToHandle stderr False) principalTypeofTests
     runTestText (putTextToHandle stderr False) principalSolutionTests
+    runTestText (putTextToHandle stderr False) principalTypeofTests
