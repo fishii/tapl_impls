@@ -69,7 +69,7 @@ dom ctx = map fst ctx
 recon :: Context -> [TypeVariable] -> Term -> Maybe (Type, [TypeVariable], [Constraint])
 recon ctx f (TmVar x) = do ty <- lookup x ctx
                            Just (ty, f, [])
-recon ctx f (TmAbs x ty1 t2) | not (elem x (dom ctx))
+recon ctx f (TmAbs x ty1 t2) | notElem x (dom ctx)
                                = do (ty2, f', c) <- recon (ctx ++ [(x, ty1)]) f t2
                                     Just (TyArr ty1 ty2, f', c)
                              | otherwise = Nothing
