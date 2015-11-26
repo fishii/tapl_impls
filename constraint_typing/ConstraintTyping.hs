@@ -67,30 +67,30 @@ dom ctx = map fst ctx
 -- | 制約を生成する。
 -- 演習22.3.10の解答。
 recon :: Context -> [TypeVariable] -> Term -> Maybe (Type, [TypeVariable], [Constraint])
-recon ctx f t@(TmVar x) = do ty <- lookup x ctx
-                             Just (ty, f, [])
-recon ctx f t@(TmAbs x ty1 t2) | not (elem x (dom ctx))
+recon ctx f (TmVar x) = do ty <- lookup x ctx
+                           Just (ty, f, [])
+recon ctx f (TmAbs x ty1 t2) | not (elem x (dom ctx))
                                = do (ty2, f', c) <- recon (ctx ++ [(x, ty1)]) f t2
                                     Just (TyArr ty1 ty2, f', c)
-                               | otherwise = Nothing
-recon ctx f t@(TmApp t1 t2) = do (ty1, f', c1) <- recon ctx f t1
+                             | otherwise = Nothing
+recon ctx f (TmApp t1 t2) = do (ty1, f', c1) <- recon ctx f t1
+                               (ty2, f'', c2) <- recon ctx f' t2
+                               (let x = head f'' in
+                                let f''' = tail f'' in
+                                Just ((TyVar x), f''', c1 ++ c2 ++ [(ty1, TyArr ty2 (TyVar x))]))
+recon ctx f TmZero = Just (TyNat, f, [])
+recon ctx f (TmSucc t1) = do (ty, f', c) <- recon ctx f t1
+                             Just (TyNat, f, c ++ [(ty, TyNat)])
+recon ctx f (TmPred t1) = do (ty, f', c) <- recon ctx f t1
+                             Just (TyNat, f, c ++ [(ty, TyNat)])
+recon ctx f (TmIsZero t1) = do (ty, f', c) <- recon ctx f t1
+                               Just (TyBool, f, c ++ [(ty, TyNat)])
+recon ctx f TmTrue = Just (TyBool, f, [])
+recon ctx f TmFalse = Just (TyBool, f, [])
+recon ctx f (TmIf t1 t2 t3) = do (ty1, f', c1) <- recon ctx f t1
                                  (ty2, f'', c2) <- recon ctx f' t2
-                                 (let x = head f'' in
-                                  let f''' = tail f'' in
-                                  Just ((TyVar x), f''', c1 ++ c2 ++ [(ty1, TyArr ty2 (TyVar x))]))
-recon ctx f t@TmZero = Just (TyNat, f, [])
-recon ctx f t@(TmSucc t1) = do (ty, f', c) <- recon ctx f t1
-                               Just (TyNat, f, c ++ [(ty, TyNat)])
-recon ctx f t@(TmPred t1) = do (ty, f', c) <- recon ctx f t1
-                               Just (TyNat, f, c ++ [(ty, TyNat)])
-recon ctx f t@(TmIsZero t1) = do (ty, f', c) <- recon ctx f t1
-                                 Just (TyBool, f, c ++ [(ty, TyNat)])
-recon ctx f t@TmTrue = Just (TyBool, f, [])
-recon ctx f t@TmFalse = Just (TyBool, f, [])
-recon ctx f t@(TmIf t1 t2 t3) = do (ty1, f', c1) <- recon ctx f t1
-                                   (ty2, f'', c2) <- recon ctx f' t2
-                                   (ty3, f''', c3) <- recon ctx f'' t3
-                                   Just (ty2, f''', c1 ++ c2 ++ c3 ++ [(ty1, TyBool), (ty2, ty3)])
+                                 (ty3, f''', c3) <- recon ctx f'' t3
+                                 Just (ty2, f''', c1 ++ c2 ++ c3 ++ [(ty1, TyBool), (ty2, ty3)])
 
 -- | 型代入。
 type TypeSubstitution = [(TypeVariable, Type)]
