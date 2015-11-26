@@ -144,6 +144,6 @@ principalSolution t = do (ty, f', c) <- recon [] f t
 
 -- | 空の型付け文脈における項の主要型を返す。
 -- 演習22.5.5の解答。
-principalTypeof :: Term -> Maybe Type
-principalTypeof t = do (principalUnifier, ty) <- principalSolution t
-                       Just (applySubst principalUnifier ty)
+typeof1 :: Term -> Maybe Type
+typeof1 t = do (principalUnifier, ty) <- principalSolution t
+               Just (applySubst principalUnifier ty)

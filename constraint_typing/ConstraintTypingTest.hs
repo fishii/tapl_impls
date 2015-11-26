@@ -180,34 +180,34 @@ principalSolutionTests = TestList
       ~?= Just ([(tv_X, TyArr TyBool TyBool), (tv_X0, TyBool)], TyArr ty_X TyBool)
     ]
 
-principalTypeofTests = TestList
+typeof1Tests = TestList
     [
       "lambda x:X. x => X -> X" ~:
-      principalTypeof (TmAbs v_x ty_X t_x)
+      typeof1 (TmAbs v_x ty_X t_x)
       ~?= Just (TyArr ty_X ty_X)
 
     , "true => Bool" ~:
-      principalTypeof TmTrue
+      typeof1 TmTrue
       ~?= Just TyBool
 
     , "(lambda x:Bool. x) true => Bool" ~:
-      principalTypeof (TmApp (TmAbs v_x TyBool t_x) TmTrue)
+      typeof1 (TmApp (TmAbs v_x TyBool t_x) TmTrue)
       ~?= Just TyBool
 
     , "(lambda x:X. x) true => Bool" ~:
-      principalTypeof (TmApp (TmAbs v_x ty_X t_x) TmTrue)
+      typeof1 (TmApp (TmAbs v_x ty_X t_x) TmTrue)
       ~?= Just TyBool
 
     , "lambda z:Z. lambda y:Y. z (y true) => (?X0 -> ?X1) -> ((Bool -> ?X0) -> ?X1)" ~:
-      principalTypeof (TmAbs v_z ty_Z
-                             (TmAbs v_y ty_Y
-                                    (TmApp t_z (TmApp t_y TmTrue))))
+      typeof1 (TmAbs v_z ty_Z
+                     (TmAbs v_y ty_Y
+                            (TmApp t_z (TmApp t_y TmTrue))))
       ~?= Just (TyArr (TyArr ty_X0 ty_X1)
                       (TyArr (TyArr TyBool ty_X0)
                              ty_X1))
 
     , "lambda x:X. if true then false else x false => (Bool -> Bool) -> Bool" ~:
-      principalTypeof (TmAbs v_x ty_X (TmIf TmTrue TmFalse (TmApp t_x TmFalse)))
+      typeof1 (TmAbs v_x ty_X (TmIf TmTrue TmFalse (TmApp t_x TmFalse)))
       ~?= Just (TyArr (TyArr TyBool TyBool)
                       TyBool)
     ]
@@ -218,4 +218,4 @@ main = do
     runTestText (putTextToHandle stderr False) unifyTests
     runTestText (putTextToHandle stderr False) applySubstTests
     runTestText (putTextToHandle stderr False) principalSolutionTests
-    runTestText (putTextToHandle stderr False) principalTypeofTests
+    runTestText (putTextToHandle stderr False) typeof1Tests
