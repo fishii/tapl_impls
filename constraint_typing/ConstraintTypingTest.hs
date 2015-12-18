@@ -1,6 +1,7 @@
 import Test.HUnit
 import System.IO
 import ConstraintTyping
+import Syntax
 
 v_x = Vr "x"
 t_x = TmVar v_x
