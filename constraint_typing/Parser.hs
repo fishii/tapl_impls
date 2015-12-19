@@ -76,6 +76,8 @@ arrowTypeTail = do symbol "->"
 emptyTypeTail :: Parser (Type -> Type)
 emptyTypeTail = return id
 
+parseType = parse typeExpr ""
+
 -- 項の構文規則。
 -- 結合の優先順位を示すためfun、argという記号を導入する。
 -- funは関数適用の第1項になり得る項。
@@ -195,3 +197,6 @@ enclosedTerm = do symbol "("
                   spaces
                   symbol ")"
                   return t
+
+parseTerm :: String -> Either ParseError Term
+parseTerm = parse termExpr ""
