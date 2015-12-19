@@ -79,6 +79,11 @@ termTests = TestList
     , " false " ~: parseTerm " false " ~?= Right TmFalse
     , " if x then true else false " ~:
       parseTerm " if x then true else false " ~?= Right (TmIf tm_x TmTrue TmFalse)
+    , " 0 " ~: parseTerm " 0 " ~?= Right TmZero
+    , "(iszero (succ (pred (0))))" ~:
+      parseTerm "(iszero (succ (pred (0))))" ~?= Right (TmIsZero (TmSucc (TmPred TmZero)))
+    , " ( iszero ( succ ( pred ( 0 ) ) ) ) " ~:
+      parseTerm " ( iszero ( succ ( pred ( 0 ) ) ) ) " ~?= Right (TmIsZero (TmSucc (TmPred TmZero)))
     ]
 
 main = do

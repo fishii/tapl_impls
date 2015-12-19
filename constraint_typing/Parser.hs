@@ -2,11 +2,6 @@ module Parser where
 import Text.ParserCombinators.Parsec
 import Syntax
 
-withSpaces :: Parser a -> Parser a
-withSpaces p = do t <- p
-                  spaces
-                  return t
-
 spaces1 = many1 space
 
 symbol :: String -> Parser String
@@ -16,6 +11,7 @@ symbol s = try (string s)
 -- V ::= "A" | ... | "Z"
 -- T ::= Bool | Nat | V | T -> T | (T)
 -- 左再帰を除去する。
+-- 結果的に矢印型が右結合になる。
 -- T ::= T_head T_tail
 -- T_head ::= Bool | Nat | V | (T)
 -- T_tail ::= e | -> T
@@ -81,25 +77,23 @@ emptyTypeTail :: Parser (Type -> Type)
 emptyTypeTail = return id
 
 -- 項の構文規則。
--- 括弧が必要な場合を明らかにするためabs_body、fun、argという記号を導入する。
--- v ::= "a" | ... | "z"
--- abs_body ::= abs | fun
--- abs ::= \v:T.abs_body
--- fun ::= v | (t) | true | false
--- arg ::= abs | fun
--- t ::= v | abs | fun " " arg | (t) | true | false | if fun then fun else fun
+-- 結合の優先順位を示すためfun、argという記号を導入する。
+-- funは関数適用の第1項になり得る項。
+-- argは関数適用の第2項およびラムダ抽象の本体になり得る項。
+-- var ::= "a" | ... | "z"
+-- abs ::= \ v : T . arg
+-- fun ::= true | false | 0 | var | (t)
+-- arg ::= fun | abs
+-- t ::= if fun then fun else fun | succ arg | pred arg | iszero arg | arg | fun " " arg
 -- 間接左再帰を除去する。
--- t ::= abs | fun t_tail
+-- t ::= if fun then fun else fun | succ arg | pred arg | iszero arg | abs | fun t_tail
 -- t_tail ::= e | " " arg
 -- 字句を明示する。
--- true = "true"
--- false = "false"
--- abs_body ::= abs | fun
 -- abs ::= "\" spaces v spaces ":" spaces T spaces "." spaces abs_body
--- fun ::= v | enclosed_t | true | false
--- arg ::= abs | fun
+-- fun ::= true | false | 0 | var | enclosed_t
+-- arg ::= fun | abs
 -- expr ::= spaces t spaces eof
--- t ::= abs | fun t_tail
+-- t ::= ... | abs | fun t_tail
 -- t_tail ::= e | spaces1 arg
 -- enclosed_t ::= "(" spaces t spaces ")"
 
@@ -111,8 +105,11 @@ termExpr = do spaces
               return t
 
 term :: Parser Term
-term = _abs
-    <|> _if
+term = _if
+    <|> _succ
+    <|> _pred
+    <|> iszero
+    <|> _abs
     <|> app fun arg
 
 app :: Parser Term -> Parser Term -> Parser Term
@@ -124,13 +121,10 @@ app f a = do t1 <- f
              return (t2 t1)
 
 fun :: Parser Term
-fun = true <|> false <|> var <|> enclosedTerm
+fun = true <|> false <|> zero <|> var <|> enclosedTerm
 
 arg :: Parser Term
 arg = fun <|> _abs
-
-absBody :: Parser Term
-absBody = fun <|> _abs
 
 true :: Parser Term
 true = do symbol "true"
@@ -154,6 +148,28 @@ _if = do symbol "if"
          t3 <- fun
          return (TmIf t1 t2 t3)
 
+zero :: Parser Term
+zero = do symbol "0"
+          return TmZero
+
+_succ :: Parser Term
+_succ = do symbol "succ"
+           spaces1
+           t <- arg
+           return (TmSucc t)
+
+_pred :: Parser Term
+_pred = do symbol "pred"
+           spaces1
+           t <- arg
+           return (TmPred t)
+
+iszero :: Parser Term
+iszero = do symbol "iszero"
+            spaces1
+            t <- arg
+            return (TmIsZero t)
+
 var :: Parser Term
 var = do v <- letter
          return (TmVar (Vr [v]))
@@ -169,7 +185,7 @@ _abs = do symbol "\\"
           spaces
           symbol "."
           spaces
-          t <- absBody
+          t <- arg
           return (TmAbs v ty t)
 
 enclosedTerm :: Parser Term
