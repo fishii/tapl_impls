@@ -29,11 +29,16 @@ parseType s = first errorPos (parse typeExpr "" s)
 
 typeTests = TestList
     [
-      " X " ~: parseType " X " ~?= Right ty_X
+      " Bool " ~: parseType " Bool " ~?= Right TyBool
+    , " Nat " ~: parseType " Nat " ~?= Right TyNat
+    , " B " ~: parseType " B " ~?= Right (TyVar (Tv "B"))
+    , " N " ~: parseType " N " ~?= Right (TyVar (Tv "N"))
+    , " X " ~: parseType " X " ~?= Right ty_X
     , " X -> Y " ~: parseType " X -> Y " ~?= Right (TyArr ty_X ty_Y)
     , " ( X ) " ~: parseType " ( X ) " ~?= Right ty_X
     , " ( ( X ) ) " ~: parseType " ( ( X ) ) " ~?= Right ty_X
     , " ( ( X ) -> ( Y ) ) " ~: parseType " ( ( X ) -> ( Y ) ) " ~?= Right (TyArr ty_X ty_Y)
+    , " ( ( Bool ) -> ( Nat ) ) " ~: parseType " ( ( Bool ) -> ( Nat ) ) " ~?= Right (TyArr TyBool TyNat)
     , " X -> Y -> Z " ~: parseType " X -> Y -> Z " ~?= Right (TyArr ty_X (TyArr ty_Y ty_Z))
     , " ( X -> Y ) -> Z " ~: parseType " ( X -> Y ) -> Z " ~?= Right (TyArr (TyArr ty_X ty_Y) ty_Z)
     , "XY" ~: parseType "XY" ~?= Left (newPos "" 1 2)

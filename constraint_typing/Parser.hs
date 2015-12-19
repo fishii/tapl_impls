@@ -8,19 +8,19 @@ withSpaces p = do t <- p
                   return t
 
 symbol :: String -> Parser String
-symbol s = string s
+symbol s = try (string s)
 
 -- 型の構文規則。
 -- V ::= "A" | ... | "Z"
--- T ::= V | T -> T | (T)
+-- T ::= Bool | Nat | V | T -> T | (T)
 -- 左再帰を除去する。
 -- T ::= T_head T_tail
--- T_head ::= V | (T)
+-- T_head ::= Bool | Nat | V | (T)
 -- T_tail ::= e | -> T
 -- 字句を明示する。
 -- E ::= spaces T spaces eof
 -- T ::= T_head T_tail
--- T_head ::= V | "(" spaces T spaces ")" spaces T''
+-- T_head ::= "Bool" | "Nat" | V | "(" spaces T spaces ")" spaces T''
 -- T_tail ::= e | "->" spaces T
 
 typeExpr :: Parser Type
@@ -40,8 +40,18 @@ arr p1 p2 = do head <- p1
                return (tail head)
 
 typeHead :: Parser Type
-typeHead = typeVar
+typeHead = typeBool
+        <|> typeNat
+        <|> typeVar
         <|> enclosedType
+
+typeBool :: Parser Type
+typeBool = do symbol "Bool"
+              return TyBool
+
+typeNat :: Parser Type
+typeNat = do symbol "Nat"
+             return TyNat
 
 typeVar :: Parser Type
 typeVar = do x <- letter
