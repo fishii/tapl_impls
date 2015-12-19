@@ -14,12 +14,14 @@ symbol s = string s
 -- V ::= "A" | ... | "Z"
 -- T ::= V | T -> T | (T)
 -- 左再帰を除去する。
--- T  ::= V T' | (T) T'
--- T' ::= e | -> T
--- 空白等を明示する。
--- E  ::= spaces T spaces eof
--- T  ::= V T' | "(" spaces T spaces ")" spaces T'
--- T' ::= e | "->" spaces T
+-- T ::= T_head T_tail
+-- T_head ::= V | (T)
+-- T_tail ::= e | -> T
+-- 字句を明示する。
+-- E ::= spaces T spaces eof
+-- T ::= T_head T_tail
+-- T_head ::= V | "(" spaces T spaces ")" spaces T''
+-- T_tail ::= e | "->" spaces T
 
 typeExpr :: Parser Type
 typeExpr = do spaces
@@ -29,13 +31,17 @@ typeExpr = do spaces
               return ty
 
 _type :: Parser Type
-_type = arr (typeVar <|> enclosedType) typeTail
+_type = arr typeHead typeTail
 
 arr :: Parser Type -> Parser (Type -> Type) -> Parser Type
-arr p1 p2 = do ty <- p1
+arr p1 p2 = do head <- p1
                spaces
                tail <- p2
-               return (tail ty)
+               return (tail head)
+
+typeHead :: Parser Type
+typeHead = typeVar
+        <|> enclosedType
 
 typeVar :: Parser Type
 typeVar = do x <- letter
