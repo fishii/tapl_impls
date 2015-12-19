@@ -7,6 +7,8 @@ withSpaces p = do t <- p
                   spaces
                   return t
 
+spaces1 = many1 space
+
 symbol :: String -> Parser String
 symbol s = try (string s)
 
@@ -79,24 +81,26 @@ emptyTypeTail :: Parser (Type -> Type)
 emptyTypeTail = return id
 
 -- 項の構文規則。
--- 抽象または適用の項を別の項に適用するときは括弧で括るよう強制するため、fという記号を導入する。
+-- 括弧が必要な場合を明らかにするためabs_body、fun、argという記号を導入する。
 -- v ::= "a" | ... | "z"
--- abs_body ::= v | abs | (t)
+-- abs_body ::= abs | fun
 -- abs ::= \v:T.abs_body
--- fun ::= v | (t)
--- arg ::= v | abs | (t)
--- t ::= v | abs | fun " " arg | (t)
+-- fun ::= v | (t) | true | false
+-- arg ::= abs | fun
+-- t ::= v | abs | fun " " arg | (t) | true | false | if fun then fun else fun
 -- 間接左再帰を除去する。
--- t  ::= v t' | abs | (t) t'
--- t' ::= e | " " v | " " abs | " " (t)
--- 空白等を明示する。
--- abs_body ::= v | abs | enclosed_t
+-- t ::= abs | fun t_tail
+-- t_tail ::= e | " " arg
+-- 字句を明示する。
+-- true = "true"
+-- false = "false"
+-- abs_body ::= abs | fun
 -- abs ::= "\" spaces v spaces ":" spaces T spaces "." spaces abs_body
--- fun ::= v | enclosed_t
--- arg ::= v | abs | (t)
+-- fun ::= v | enclosed_t | true | false
+-- arg ::= abs | fun
 -- expr ::= spaces t spaces eof
--- t ::= v t' | abs | enclosed_t t'
--- t' ::= e | space spaces v | space spaces abs | space spaces enclosed_t
+-- t ::= abs | fun t_tail
+-- t_tail ::= e | spaces1 arg
 -- enclosed_t ::= "(" spaces t spaces ")"
 
 termExpr :: Parser Term
@@ -108,45 +112,70 @@ termExpr = do spaces
 
 term :: Parser Term
 term = _abs
-       <|> withTermTail (var
-                         <|> enclosedTerm)
+    <|> _if
+    <|> app fun arg
+
+app :: Parser Term -> Parser Term -> Parser Term
+app f a = do t1 <- f
+             t2 <- (try (do spaces1
+                            t2 <- a
+                            return (\t1 -> TmApp t1 t2)))
+                   <|> return id
+             return (t2 t1)
+
+fun :: Parser Term
+fun = true <|> false <|> var <|> enclosedTerm
+
+arg :: Parser Term
+arg = fun <|> _abs
+
+absBody :: Parser Term
+absBody = fun <|> _abs
+
+true :: Parser Term
+true = do symbol "true"
+          return TmTrue
+
+false :: Parser Term
+false = do symbol "false"
+           return TmFalse
+
+_if :: Parser Term
+_if = do symbol "if"
+         spaces1
+         t1 <- fun
+         spaces1
+         symbol "then"
+         spaces1
+         t2 <- fun
+         spaces1
+         symbol "else"
+         spaces1
+         t3 <- fun
+         return (TmIf t1 t2 t3)
 
 var :: Parser Term
 var = do v <- letter
          return (TmVar (Vr [v]))
 
-absBody :: Parser Term
-absBody = var <|> _abs <|> enclosedTerm
-
 _abs :: Parser Term
-_abs = do withSpaces (symbol "\\")
+_abs = do symbol "\\"
+          spaces
           TmVar v <- var
           spaces
-          withSpaces (symbol ":")
+          symbol ":"
+          spaces
           ty <- _type
           spaces
-          withSpaces (symbol ".")
+          symbol "."
+          spaces
           t <- absBody
           return (TmAbs v ty t)
 
 enclosedTerm :: Parser Term
-enclosedTerm = do withSpaces (symbol "(")
+enclosedTerm = do symbol "("
+                  spaces
                   t <- term
                   spaces
                   symbol ")"
                   return t
-
-withTermTail :: Parser Term -> Parser Term
-withTermTail p = do t <- p
-                    tail <- termTail
-                    return (tail t)
-
-termTail :: Parser (Term -> Term)
-termTail = try (do space
-                   spaces
-                   t2 <- var <|> _abs <|> enclosedTerm
-                   return (\t1 -> TmApp t1 t2))
-           <|> emptyTermTail
-
-emptyTermTail :: Parser (Term -> Term)
-emptyTermTail = return id

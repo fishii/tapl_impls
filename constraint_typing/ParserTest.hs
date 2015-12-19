@@ -21,11 +21,13 @@ vr_z = Vr "z"
 tm_z = TmVar vr_z
 id_x = TmAbs vr_x ty_X tm_x
 
+parseType' = parse typeExpr ""
+
 -- パースに失敗したとき返されるParseErrorは複雑で、
 -- テストの期待値を作るのが面倒なので、
 -- 失敗した位置だけを返すようにする。
 parseType :: String -> Either SourcePos Type
-parseType s = first errorPos (parse typeExpr "" s)
+parseType s = first errorPos (parseType' s)
 
 typeTests = TestList
     [
@@ -44,11 +46,13 @@ typeTests = TestList
     , "XY" ~: parseType "XY" ~?= Left (newPos "" 1 2)
     ]
 
+parseTerm' = parse termExpr ""
+
 -- パースに失敗したとき返されるParseErrorは複雑で、
 -- テストの期待値を作るのが面倒なので、
 -- 失敗した位置だけを返すようにする。
 parseTerm :: String -> Either SourcePos Term
-parseTerm s = first errorPos (parse termExpr "" s)
+parseTerm s = first errorPos (parseTerm' s)
 
 termTests = TestList
     [
@@ -71,6 +75,10 @@ termTests = TestList
     , "\\x:X.x x" ~: parseTerm "\\x:X.x x" ~?= Left (newPos "" 1 8)
     , " x y z " ~: parseTerm " x y z " ~?= Left (newPos "" 1 6)
     , " xy " ~: parseTerm " xy " ~?= Left (newPos "" 1 3)
+    , " true " ~: parseTerm " true " ~?= Right TmTrue
+    , " false " ~: parseTerm " false " ~?= Right TmFalse
+    , " if x then true else false " ~:
+      parseTerm " if x then true else false " ~?= Right (TmIf tm_x TmTrue TmFalse)
     ]
 
 main = do
